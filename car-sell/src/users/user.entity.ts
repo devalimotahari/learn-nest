@@ -1,4 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Roles } from '../guards/auth/roles.enum';
 
 @Entity()
 export class User {
@@ -10,4 +11,9 @@ export class User {
 
   @Column()
   password: string;
+
+  @Column({
+    default: Roles.Client,
+  })
+  role: Roles;
 }

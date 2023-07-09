@@ -1,54 +1,109 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
+  Patch,
   Post,
   Put,
   Query,
-} from '@nestjs/common';
-import { UserCreateDto } from './dtos/user.create.dto';
-import { UserService } from './user.service';
-import { UserUpdateDto } from './dtos/user.update.dto';
-import { UserDto } from './dtos/user.dto';
-import { Serialize } from '../interceptors/serializer.interceptor';
+  Session
+} from "@nestjs/common";
+import { UserCreateDto } from "./dtos/user.create.dto";
+import { UserService } from "./user.service";
+import { UserUpdateDto } from "./dtos/user.update.dto";
+import { UserDto } from "./dtos/user.dto";
+import { Serialize } from "../interceptors/serializer.interceptor";
+import { AuthService } from "./auth.service";
+import { SessionT } from "../_types/session.type";
+import { SessionUser } from "../decorators/sessionUser.decorator";
+import { User } from "./user.entity";
+import { RoleGuard } from "../guards/auth/auth.guard";
+import { Roles } from "../guards/auth/roles.enum";
+import { UserUpdateRoleDto } from "./dtos/user.updateRole.dto";
 
 @Controller('auth')
 @Serialize(UserDto)
 export class UserController {
-  constructor(private service: UserService) {}
+@RoleGuard([Roles.Admin, Roles.SuperAdmin])
+  @Ge"/:id"
+d
+')
+
+  constructor(private service: UserService, private authService: AuthService) {}
 
   @Post('/signup')
-  create(@Body() body: UserCreateDto) {
-    return this.service.create(body.email, body.password);
+  async signUp(@Body() body: UserCreateDto, @Session() session: SessionT) {
+    if (session.userId) {
+      throw new BadRequestException('شما از قبل وارد شده اید!');
+    }
+    const user = await this.authService.signUp(
+      body.email,
+      body.password,
+      body.role,
+    );
+    session.userId = user.id;
+    return user;
   }
 
+  @Post('/signin')
+  async signIn(@Body() body: UserCreateDto, @Session() session: SessionT) {
+    if (session.userId) {
+      throw new BadRequestException('شما از قبل وارد شده اید!');
+    }
+    const user = await this.authService.signIn(body.email, body.password);
+    session.userId = user.id;
+    return user;
+  }
+
+  @RoleGuard()
+  @Post('/signout')
+  async signOut(@Session() session: SessionT) {
+    session.userId = null;
+  }
+
+    @RoleGuard()
+  @Get('/whoami')
+  whoAmI(@SessionUser() user: User) {
+    return user;
+  }
+  @RoleGuard([Roles.Admin, Roles.SuperAdmin])
   @Get('/list')
   list() {
     return this.service.findAll();
   }
-
+  @RoleGuard([Roles.Admin, Roles.SuperAdmin])
   @Get()
-  getByMail(@Query('email') email: string) {
-    return this.service.findOneBy({ email });
+  async getByMail(@Query('email') email: string) {
+    const user = await this.service.findOneBy({ email });
+    if (!user) {
+      throw new NotFoundException('کاربر یافت نشد.');
+    }
+    return user;
   }
 
-  @Serialize(UserDto)
-  @Get('/:id')
-  getById(@Param('id') id: string) {
+  getById(@Param("id") id: string) {
     return this.service.findById(+id);
   }
 
-  @Serialize(UserDto)
-  @Put('/:id')
-  edit(@Param('id') id: string, @Body() body: UserUpdateDto) {
+  @RoleGuard([Roles.Admin, Roles.SuperAdmin])
+  @Put("/:id")
+  edit(@Param("id") id: string, @Body() body: UserUpdateDto) {
     return this.service.update(+id, body);
   }
 
-  @Serialize(UserDto)
-  @Delete('/:id')
-  remove(@Param('id') id: string) {
+  @RoleGuard([Roles.Admin, Roles.SuperAdmin])
+  @Patch("/:id")
+  updateRole(@Param("id") id: string, @Body() body: UserUpdateRoleDto) {
+    return this.service.update(+id, body);
+  }
+
+  @RoleGuard([Roles.Admin, Roles.SuperAdmin])
+  @Delete("/:id")
+  remove(@Param("id") id: string) {
     return this.service.remove(+id);
   }
 }

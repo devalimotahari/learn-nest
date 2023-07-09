@@ -1,11 +1,8 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { User } from './user.entity';
 import { FindOptionsSelect, FindOptionsWhere, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Roles } from '../guards/auth/roles.enum';
 
 @Injectable()
 export class UserService {
@@ -13,14 +10,9 @@ export class UserService {
 
   constructor(@InjectRepository(User) private repository: Repository<User>) {}
 
-  async create(email: string, password: string) {
-    const found = await this.repository.findOne({ where: { email } });
-    if (found) {
-      throw new ConflictException('این ایمیل از قبل موجود است.');
-    }
-
-    const user = this.repository.create({ email, password });
-    return this.repository.save(user);
+  async create(user: { email: string; password: string; role?: Roles }) {
+    const newUser = this.repository.create(user);
+    return this.repository.save(newUser);
   }
 
   findAll(select?: FindOptionsSelect<User>) {
@@ -38,11 +30,7 @@ export class UserService {
   }
 
   async findOneBy(where: FindOptionsWhere<User> | FindOptionsWhere<User>[]) {
-    const obj = await this.repository.findOne({ where });
-    if (!obj) {
-      throw new NotFoundException(this.NOT_FOUND_MESSAGE);
-    }
-    return obj;
+    return await this.repository.findOne({ where });
   }
 
   findAllBy(where: FindOptionsWhere<User> | FindOptionsWhere<User>[]) {

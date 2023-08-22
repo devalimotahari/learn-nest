@@ -10,29 +10,24 @@ import {
   Post,
   Put,
   Query,
-  Session
-} from "@nestjs/common";
-import { UserCreateDto } from "./dtos/user.create.dto";
-import { UserService } from "./user.service";
-import { UserUpdateDto } from "./dtos/user.update.dto";
-import { UserDto } from "./dtos/user.dto";
-import { Serialize } from "../interceptors/serializer.interceptor";
-import { AuthService } from "./auth.service";
-import { SessionT } from "../_types/session.type";
-import { SessionUser } from "../decorators/sessionUser.decorator";
-import { User } from "./user.entity";
-import { RoleGuard } from "../guards/auth/auth.guard";
-import { Roles } from "../guards/auth/roles.enum";
-import { UserUpdateRoleDto } from "./dtos/user.updateRole.dto";
+  Session,
+} from '@nestjs/common';
+import { UserCreateDto } from './dtos/user.create.dto';
+import { UserService } from './user.service';
+import { UserUpdateDto } from './dtos/user.update.dto';
+import { UserDto } from './dtos/user.dto';
+import { Serialize } from '../interceptors/serializer.interceptor';
+import { AuthService } from './auth.service';
+import { SessionT } from '../_types/session.type';
+import { SessionUser } from '../decorators/sessionUser.decorator';
+import { User } from './user.entity';
+import { RoleGuard } from '../guards/auth/auth.guard';
+import { Roles } from '../guards/auth/roles.enum';
+import { UserUpdateRoleDto } from './dtos/user.updateRole.dto';
 
 @Controller('auth')
 @Serialize(UserDto)
 export class UserController {
-@RoleGuard([Roles.Admin, Roles.SuperAdmin])
-  @Ge"/:id"
-d
-')
-
   constructor(private service: UserService, private authService: AuthService) {}
 
   @Post('/signup')
@@ -40,11 +35,7 @@ d
     if (session.userId) {
       throw new BadRequestException('شما از قبل وارد شده اید!');
     }
-    const user = await this.authService.signUp(
-      body.email,
-      body.password,
-      body.role,
-    );
+    const user = await this.authService.signUp(body.email, body.password);
     session.userId = user.id;
     return user;
   }
@@ -65,16 +56,18 @@ d
     session.userId = null;
   }
 
-    @RoleGuard()
+  @RoleGuard()
   @Get('/whoami')
   whoAmI(@SessionUser() user: User) {
     return user;
   }
+
   @RoleGuard([Roles.Admin, Roles.SuperAdmin])
   @Get('/list')
   list() {
     return this.service.findAll();
   }
+
   @RoleGuard([Roles.Admin, Roles.SuperAdmin])
   @Get()
   async getByMail(@Query('email') email: string) {
@@ -85,25 +78,27 @@ d
     return user;
   }
 
-  getById(@Param("id") id: string) {
+  @RoleGuard([Roles.Admin, Roles.SuperAdmin])
+  @Get(':id')
+  getById(@Param('id') id: string) {
     return this.service.findById(+id);
   }
 
   @RoleGuard([Roles.Admin, Roles.SuperAdmin])
-  @Put("/:id")
-  edit(@Param("id") id: string, @Body() body: UserUpdateDto) {
+  @Put('/:id')
+  edit(@Param('id') id: string, @Body() body: UserUpdateDto) {
     return this.service.update(+id, body);
   }
 
   @RoleGuard([Roles.Admin, Roles.SuperAdmin])
-  @Patch("/:id")
-  updateRole(@Param("id") id: string, @Body() body: UserUpdateRoleDto) {
+  @Patch('/:id')
+  updateRole(@Param('id') id: string, @Body() body: UserUpdateRoleDto) {
     return this.service.update(+id, body);
   }
 
   @RoleGuard([Roles.Admin, Roles.SuperAdmin])
-  @Delete("/:id")
-  remove(@Param("id") id: string) {
+  @Delete('/:id')
+  remove(@Param('id') id: string) {
     return this.service.remove(+id);
   }
 }

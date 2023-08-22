@@ -16,8 +16,7 @@ export class AuthInterceptor implements NestInterceptor {
     const userId = req.session.userId;
 
     if (userId) {
-      const user = await this.userService.findById(userId);
-      req.user = user;
+      req.user = await this.userService.findById(userId);
     }
 
     return next.handle();
